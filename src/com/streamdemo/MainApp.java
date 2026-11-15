@@ -71,10 +71,13 @@ public class MainApp extends Application {
         stage.show();
     }
 
+    
     private void play(Movie movie) {
-        // THIS IS THE FIX: It opens the YouTube trailer in your default web browser
-        getHostServices().showDocument(movie.watchUrl());
+
+    // Play the selected YouTube trailer inside StreamBox
+    player.open(movie);
     }
+
 
     @Override
     public void stop() {

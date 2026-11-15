@@ -1,18 +1,73 @@
+
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+
     <style>
-        html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
-        iframe { width: 100%; height: 100%; border: none; }
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #player {
+            width: 100%;
+            height: 100%;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
     </style>
 </head>
+
 <body>
-    <!-- We add autoplay=1 to play instantly, and rel=0 to stop recommended videos at the end -->
-    <iframe id="ytplayer" 
-            src="https://www.youtube.com/embed/%VIDEO_ID%?autoplay=1&controls=0&rel=0&showinfo=0&modestbranding=1&playsinline=1" 
-            allow="autoplay; encrypted-media" 
-            allowfullscreen>
-    </iframe>
+
+    <div id="player"></div>
+
+    <script>
+        window.streamBoxReady = false;
+        window.streamBoxError = false;
+
+        var player;
+
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+
+        document.head.appendChild(tag);
+
+        function onYouTubeIframeAPIReady() {
+
+            player = new YT.Player('player', {
+
+                videoId: '%VIDEO_ID%',
+
+                playerVars: {
+                    autoplay: 1,
+                    controls: 0,
+                    rel: 0,
+                    playsinline: 1,
+                    modestbranding: 1
+                },
+
+                events: {
+                    onReady: function(event) {
+                        window.streamBoxReady = true;
+                        event.target.playVideo();
+                    },
+
+                    onError: function(event) {
+                        window.streamBoxError = true;
+                    }
+                }
+            });
+        }
+    </script>
+
 </body>
 </html>
