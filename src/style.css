@@ -60,3 +60,23 @@
     -fx-shape: " ";
     -fx-padding: 0;
 }
+/* Responsive navigation and content */
+.text-field {
+    -fx-max-width: 240px;
+}
+
+/* Keep the movie rows inside the available width */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+}
+
+/* Prevent movie content from showing unwanted borders */
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Keep the dark background consistent */
+.root {
+    -fx-background-color: #141414;
+}

@@ -31,6 +31,8 @@ public class HeroBanner extends StackPane {
 
     private final Label blurb = new Label();
 
+    private final Label tag = new Label("FEATURED TRAILER");
+
     private final Consumer<Movie> onPlay;
 
     public HeroBanner(
@@ -41,11 +43,17 @@ public class HeroBanner extends StackPane {
 
         this.onPlay = onPlay;
 
+        // RESPONSIVE BANNER HEIGHT
         DoubleBinding height = Bindings.createDoubleBinding(
-                () -> Math.max(
-                        320,
-                        Math.min(520, windowWidth.get() * 0.42)
-                ),
+                () -> {
+                    double width = windowWidth.get();
+
+                    if (width < 600) {
+                        return Math.max(240, Math.min(360, width * 0.85));
+                    }
+
+                    return Math.max(320, Math.min(520, width * 0.42));
+                },
                 windowWidth
         );
 
@@ -55,6 +63,7 @@ public class HeroBanner extends StackPane {
 
         setStyle("-fx-background-color: #000000;");
 
+        // CLIP IMAGE TO BANNER
         Rectangle clip = new Rectangle();
 
         clip.widthProperty().bind(widthProperty());
@@ -85,15 +94,13 @@ public class HeroBanner extends StackPane {
         );
 
         // FEATURED LABEL
-        Label tag = new Label("FEATURED TRAILER");
-
         tag.setStyle(
                 "-fx-text-fill: #e50914;" +
                 "-fx-font-size: 14px;" +
                 "-fx-font-weight: bold;"
         );
 
-        // TITLE
+        // MOVIE TITLE
         title.setWrapText(true);
 
         title.setStyle(
@@ -118,7 +125,7 @@ public class HeroBanner extends StackPane {
                 new DropShadow(8, Color.BLACK)
         );
 
-        // PLAY VIDEO BUTTON - NO ICON
+        // PLAY VIDEO BUTTON
         CustomButton play = new CustomButton(
                 "PLAY VIDEO",
                 CustomButton.Kind.PRIMARY,
@@ -128,9 +135,10 @@ public class HeroBanner extends StackPane {
         HBox buttons = new HBox(12, play);
 
         buttons.setPadding(
-                new Insets(10, 0, 0, 0)
+                new Insets(8, 0, 0, 0)
         );
 
+        // TEXT CONTAINER
         VBox text = new VBox(
                 10,
                 tag,
@@ -139,13 +147,101 @@ public class HeroBanner extends StackPane {
                 buttons
         );
 
-        text.setMaxWidth(560);
+        text.setAlignment(Pos.CENTER_LEFT);
 
-        text.setPadding(
-                new Insets(0, 0, 0, 48)
+        text.maxWidthProperty().bind(
+                widthProperty().multiply(0.90)
         );
 
-        text.setAlignment(Pos.CENTER_LEFT);
+        // RESPONSIVE PADDING
+        text.paddingProperty().bind(
+                Bindings.createObjectBinding(
+                        () -> {
+                            double width = windowWidth.get();
+
+                            double horizontalPadding =
+                                    width < 600
+                                            ? 16
+                                            : Math.min(48, width * 0.045);
+
+                            return new Insets(
+                                    0,
+                                    horizontalPadding,
+                                    0,
+                                    horizontalPadding
+                            );
+                        },
+                        windowWidth
+                )
+        );
+
+        // RESPONSIVE FONT SIZES AND SPACING
+        Runnable updateTextSize = () -> {
+
+            double width = windowWidth.get();
+
+            double titleSize;
+            double descriptionSize;
+            double tagSize;
+            double spacing;
+
+            if (width < 450) {
+
+                titleSize = 27;
+                descriptionSize = 12;
+                tagSize = 10;
+                spacing = 6;
+
+            } else if (width < 600) {
+
+                titleSize = 30;
+                descriptionSize = 13;
+                tagSize = 11;
+                spacing = 7;
+
+            } else if (width < 900) {
+
+                titleSize = 38;
+                descriptionSize = 15;
+                tagSize = 12;
+                spacing = 8;
+
+            } else {
+
+                titleSize = Math.min(52, width * 0.055);
+                descriptionSize = 18;
+                tagSize = 14;
+                spacing = 10;
+            }
+
+            title.setStyle(
+                    "-fx-text-fill: white;" +
+                    "-fx-font-size: " + titleSize + "px;" +
+                    "-fx-font-weight: bold;"
+            );
+
+            blurb.setStyle(
+                    "-fx-text-fill: #e5e5e5;" +
+                    "-fx-font-size: " + descriptionSize + "px;"
+            );
+
+            tag.setStyle(
+                    "-fx-text-fill: #e50914;" +
+                    "-fx-font-size: " + tagSize + "px;" +
+                    "-fx-font-weight: bold;"
+            );
+
+            text.setSpacing(spacing);
+        };
+
+        // APPLY SIZES WHEN THE BANNER FIRST OPENS
+        updateTextSize.run();
+
+        // UPDATE WHEN THE WINDOW IS RESIZED
+        windowWidth.addListener(
+                (obs, oldValue, newValue) ->
+                        updateTextSize.run()
+        );
 
         StackPane.setAlignment(
                 text,
@@ -159,11 +255,11 @@ public class HeroBanner extends StackPane {
                 text
         );
 
-        // DISPLAY THE FIRST FEATURED MOVIE
+        // DISPLAY SELECTED MOVIE
         setMovie(movie);
     }
 
-    // UPDATE FEATURED MOVIE DETAILS
+    // UPDATE FEATURED MOVIE
     public void setMovie(Movie movie) {
 
         if (movie == null) {
@@ -181,7 +277,7 @@ public class HeroBanner extends StackPane {
         loadBackdrop(movie);
     }
 
-    // LOAD MOVIE BACKGROUND AND FALLBACK IMAGE
+    // LOAD BACKGROUND IMAGE
     private void loadBackdrop(Movie movie) {
 
         setStyle("-fx-background-color: #000000;");
@@ -196,8 +292,6 @@ public class HeroBanner extends StackPane {
         backdrop.errorProperty().addListener(
                 (obs, wasError, isError) -> {
 
-                    // Ignore an old image finishing after
-                    // the user has selected another movie.
                     if (currentMovie != movie || !isError) {
                         return;
                     }
@@ -213,7 +307,9 @@ public class HeroBanner extends StackPane {
                             (fallbackObs, oldValue, failed) -> {
 
                                 if (currentMovie == movie && failed) {
+
                                     picture.setImage(null);
+
                                     setStyle(
                                             "-fx-background-color: #1a1a1a;"
                                     );

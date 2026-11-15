@@ -1,3 +1,4 @@
+
 package com.streamdemo;
 
 import com.streamdemo.model.Catalog;
@@ -7,6 +8,7 @@ import com.streamdemo.player.PlayerServer;
 import com.streamdemo.ui.HomeView;
 import com.streamdemo.ui.NavBar;
 import com.streamdemo.ui.PlayerView;
+
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
@@ -22,68 +24,102 @@ import java.util.List;
 public class MainApp extends Application {
 
     private final PlayerServer server = new PlayerServer();
+
     private PlayerView player;
     private HomeView home;
 
     @Override
     public void start(Stage stage) throws Exception {
+
         server.start();
 
         List<Category> categories = Catalog.load();
-        List<String> names = categories.stream().map(Category::name).toList();
+
+        List<String> names = categories.stream()
+                .map(Category::name)
+                .toList();
 
         player = new PlayerView(server, getHostServices());
-        home = new HomeView(categories, Catalog.featured(), this::play);
-        
-        NavBar nav = new NavBar(names, home::scrollToTop, home::scrollToCategory, home::filter);
+
+        home = new HomeView(
+                categories,
+                Catalog.featured(),
+                this::play
+        );
+
+        NavBar nav = new NavBar(
+                names,
+                home::scrollToTop,
+                home::scrollToCategory,
+                home::filter
+        );
 
         BorderPane browse = new BorderPane();
+
         browse.setTop(nav);
         browse.setCenter(home);
 
         StackPane root = new StackPane(browse, player);
+
         root.setStyle("-fx-background-color: #141414;");
 
         Screen screen = Screen.getPrimary();
-        double windowWidth = Math.min(1100, screen.getVisualBounds().getWidth() * 0.9);
-        double windowHeight = Math.min(700, screen.getVisualBounds().getHeight() * 0.9);
 
-        Scene scene = new Scene(root, windowWidth, windowHeight);
-        
+        double windowWidth = Math.min(
+                1100,
+                screen.getVisualBounds().getWidth() * 0.9
+        );
+
+        double windowHeight = Math.min(
+                700,
+                screen.getVisualBounds().getHeight() * 0.9
+        );
+
+        Scene scene = new Scene(
+                root,
+                windowWidth,
+                windowHeight
+        );
+
         URL css = getClass().getResource("/style.css");
+
         if (css != null) {
             scene.getStylesheets().add(css.toExternalForm());
         }
 
         scene.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-            if (player.isOpen()) {
-                if (e.getCode() == KeyCode.ESCAPE) {
-                    player.close();
-                    e.consume();
-                }
+
+            if (player.isOpen()
+                    && e.getCode() == KeyCode.ESCAPE) {
+
+                player.close();
+                e.consume();
             }
         });
 
         stage.setTitle("StreamBox");
-        stage.setMinWidth(900);
-        stage.setMinHeight(600);
+
+        // Allow smaller window sizes.
+        stage.setMinWidth(600);
+        stage.setMinHeight(450);
+
         stage.setScene(scene);
         stage.show();
     }
 
-    
     private void play(Movie movie) {
 
-    // Play the selected YouTube trailer inside StreamBox
-    player.open(movie);
+        // Play the selected trailer inside StreamBox.
+        player.open(movie);
     }
-
 
     @Override
     public void stop() {
+
         if (player != null) {
             player.dispose();
         }
+
         server.stop();
     }
 

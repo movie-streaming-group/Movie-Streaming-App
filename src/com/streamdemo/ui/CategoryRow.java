@@ -1,8 +1,10 @@
+
 package com.streamdemo.ui;
 
 import com.streamdemo.audio.SoundManager;
 import com.streamdemo.model.Category;
 import com.streamdemo.model.Movie;
+
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -28,128 +30,312 @@ import java.util.function.Consumer;
 public class CategoryRow extends VBox {
 
     private static final int VISIBLE = 5;
-    private static final double GAP = 16;
-    private static final double H_PAD = 48;
-    private static final double V_PAD = 24;
+
     private static final double META_HEIGHT = 54;
+    private static final double V_PAD = 24;
 
     private final ScrollPane scroller = new ScrollPane();
-    private final HBox track = new HBox(GAP);
+
+    private final HBox track = new HBox();
+
+    private final DoubleBinding horizontalPadding;
+    private final DoubleBinding gap;
     private final DoubleBinding cardWidth;
+
     private Timeline scrollAnimation;
 
-    public CategoryRow(Category category, Consumer<Movie> onSelect) {
+    public CategoryRow(
+            Category category,
+            Consumer<Movie> onSelect
+    ) {
+
         setPadding(new Insets(14, 0, 0, 0));
 
+        // RESPONSIVE SPACING
+        horizontalPadding = Bindings.createDoubleBinding(
+                () -> Math.max(
+                        12,
+                        Math.min(48, scroller.getWidth() * 0.05)
+                ),
+                scroller.widthProperty()
+        );
+
+        gap = Bindings.createDoubleBinding(
+                () -> Math.max(
+                        8,
+                        Math.min(16, scroller.getWidth() * 0.02)
+                ),
+                scroller.widthProperty()
+        );
+
+        // RESPONSIVE CARD WIDTH
+        cardWidth = Bindings.createDoubleBinding(
+                () -> Math.max(
+                        105,
+                        (
+                                scroller.getWidth()
+                                - 2 * horizontalPadding.get()
+                                - (VISIBLE - 1) * gap.get()
+                        ) / VISIBLE
+                ),
+                scroller.widthProperty(),
+                horizontalPadding,
+                gap
+        );
+
+        track.spacingProperty().bind(gap);
+
+        // HEADER
         Region accent = new Region();
+
         accent.setMinSize(4, 24);
         accent.setPrefSize(4, 24);
         accent.setMaxSize(4, 24);
-        accent.setStyle("-fx-background-color: #e50914; -fx-background-radius: 2;");
+
+        accent.setStyle(
+                "-fx-background-color: #e50914;" +
+                "-fx-background-radius: 2;"
+        );
+
         Label name = new Label(category.name());
-        name.setStyle("-fx-text-fill: white; -fx-font-size: 26px; -fx-font-weight: bold;");
-        Label count = new Label(category.movies().size() + " trailers");
-        count.setStyle("-fx-text-fill: #808080; -fx-font-size: 13px;");
+
+        name.setStyle(
+                "-fx-text-fill: white;" +
+                "-fx-font-size: 26px;" +
+                "-fx-font-weight: bold;"
+        );
+
+        Label count = new Label(
+                category.movies().size() + " trailers"
+        );
+
+        count.setStyle(
+                "-fx-text-fill: #808080;" +
+                "-fx-font-size: 13px;"
+        );
+
         HBox header = new HBox(12, accent, name, count);
+
         header.setAlignment(Pos.CENTER_LEFT);
-        header.setPadding(new Insets(0, H_PAD, 0, H_PAD));
 
-        cardWidth = Bindings.createDoubleBinding(
-                () -> Math.max(140, (scroller.getWidth() - 2 * H_PAD - (VISIBLE - 1) * GAP) / VISIBLE),
-                scroller.widthProperty());
+        header.paddingProperty().bind(
+                Bindings.createObjectBinding(
+                        () -> new Insets(
+                                0,
+                                horizontalPadding.get(),
+                                0,
+                                horizontalPadding.get()
+                        ),
+                        horizontalPadding
+                )
+        );
 
-        track.setPadding(new Insets(V_PAD, H_PAD, V_PAD, H_PAD));
+        // MOVIE CARDS
+        track.paddingProperty().bind(
+                Bindings.createObjectBinding(
+                        () -> new Insets(
+                                V_PAD,
+                                horizontalPadding.get(),
+                                V_PAD,
+                                horizontalPadding.get()
+                        ),
+                        horizontalPadding
+                )
+        );
+
         track.setAlignment(Pos.TOP_LEFT);
+
         for (Movie movie : category.movies()) {
-            track.getChildren().add(new MovieCard(movie, cardWidth, onSelect));
+
+            track.getChildren().add(
+                    new MovieCard(movie, cardWidth, onSelect)
+            );
         }
 
+        // SCROLL PANE
         scroller.setContent(track);
+
         scroller.setFitToHeight(true);
-        scroller.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroller.setVbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
-        scroller.setPannable(false);
-        DoubleBinding rowHeight = cardWidth.multiply(9.0 / 16.0).add(META_HEIGHT + 2 * V_PAD);
+
+        scroller.setHbarPolicy(
+                ScrollPane.ScrollBarPolicy.NEVER
+        );
+
+        scroller.setVbarPolicy(
+                ScrollPane.ScrollBarPolicy.NEVER
+        );
+
+        scroller.setPannable(true);
+
+        DoubleBinding rowHeight =
+                cardWidth.multiply(9.0 / 16.0)
+                        .add(META_HEIGHT + 2 * V_PAD);
+
         scroller.prefHeightProperty().bind(rowHeight);
         scroller.minHeightProperty().bind(rowHeight);
         scroller.maxHeightProperty().bind(rowHeight);
-        scroller.addEventFilter(ScrollEvent.SCROLL, this::handleHorizontalScroll);
 
+        scroller.addEventFilter(
+                ScrollEvent.SCROLL,
+                this::handleHorizontalScroll
+        );
+
+        // SCROLL ARROWS
         StackPane left = arrow(true);
         StackPane right = arrow(false);
-        StackPane stack = new StackPane(scroller, left, right);
+
+        StackPane stack = new StackPane(
+                scroller,
+                left,
+                right
+        );
+
         StackPane.setAlignment(left, Pos.TOP_LEFT);
         StackPane.setAlignment(right, Pos.TOP_RIGHT);
-        StackPane.setMargin(left, new Insets(V_PAD, 0, 0, 0));
-        StackPane.setMargin(right, new Insets(V_PAD, 0, 0, 0));
-        left.visibleProperty().bind(stack.hoverProperty().and(scroller.hvalueProperty().greaterThan(0.001)));
-        right.visibleProperty().bind(stack.hoverProperty().and(scroller.hvalueProperty().lessThan(0.999)));
+
+        StackPane.setMargin(
+                left,
+                new Insets(V_PAD, 0, 0, 0)
+        );
+
+        StackPane.setMargin(
+                right,
+                new Insets(V_PAD, 0, 0, 0)
+        );
+
+        left.visibleProperty().bind(
+                stack.hoverProperty()
+                        .and(scroller.hvalueProperty().greaterThan(0.001))
+        );
+
+        right.visibleProperty().bind(
+                stack.hoverProperty()
+                        .and(scroller.hvalueProperty().lessThan(0.999))
+        );
 
         getChildren().addAll(header, stack);
     }
 
     private StackPane arrow(boolean isLeft) {
+
         Node chevron = isLeft
                 ? Icons.chevronLeft(26, Color.WHITE)
                 : Icons.chevronRight(26, Color.WHITE);
+
         StackPane pane = new StackPane(chevron);
-        pane.setMinWidth(H_PAD);
-        pane.setPrefWidth(H_PAD);
-        pane.setMaxWidth(H_PAD);
-        pane.prefHeightProperty().bind(cardWidth.multiply(9.0 / 16.0));
-        pane.maxHeightProperty().bind(cardWidth.multiply(9.0 / 16.0));
+
+        pane.minWidthProperty().bind(horizontalPadding);
+        pane.prefWidthProperty().bind(horizontalPadding);
+        pane.maxWidthProperty().bind(horizontalPadding);
+
+        pane.prefHeightProperty().bind(
+                cardWidth.multiply(9.0 / 16.0)
+        );
+
+        pane.maxHeightProperty().bind(
+                cardWidth.multiply(9.0 / 16.0)
+        );
+
         pane.setCursor(Cursor.HAND);
 
         String direction = isLeft ? "to right" : "to left";
-        String idle = "-fx-background-color: linear-gradient(" + direction + ", rgba(20,20,20,0.85), rgba(20,20,20,0));";
-        String hover = "-fx-background-color: linear-gradient(" + direction + ", rgba(0,0,0,0.95), rgba(0,0,0,0.25));";
+
+        String idle =
+                "-fx-background-color: linear-gradient(" +
+                direction +
+                ", rgba(20,20,20,0.85), rgba(20,20,20,0));";
+
+        String hover =
+                "-fx-background-color: linear-gradient(" +
+                direction +
+                ", rgba(0,0,0,0.95), rgba(0,0,0,0.25));";
+
         pane.setStyle(idle);
+
         pane.setOnMouseEntered(e -> {
             pane.setStyle(hover);
             SoundManager.play(SoundManager.Effect.HOVER);
         });
+
         pane.setOnMouseExited(e -> pane.setStyle(idle));
+
         pane.setOnMouseClicked(e -> {
+
             SoundManager.play(SoundManager.Effect.CLICK);
+
             page(isLeft ? -1 : 1);
+
             e.consume();
         });
+
         return pane;
     }
 
     private void page(int direction) {
+
         double max = maxScroll();
+
         if (max <= 0) {
             return;
         }
+
         double current = scroller.getHvalue() * max;
-        double step = VISIBLE * (cardWidth.get() + GAP);
-        double target = Math.max(0, Math.min(max, current + direction * step));
+
+        double step = VISIBLE * (cardWidth.get() + gap.get());
+
+        double target = Math.max(
+                0,
+                Math.min(max, current + direction * step)
+        );
+
         if (scrollAnimation != null) {
             scrollAnimation.stop();
         }
-        scrollAnimation = new Timeline(new KeyFrame(Duration.millis(450),
-                new KeyValue(scroller.hvalueProperty(), target / max, Interpolator.EASE_BOTH)));
+
+        scrollAnimation = new Timeline(
+                new KeyFrame(
+                        Duration.millis(450),
+                        new KeyValue(
+                                scroller.hvalueProperty(),
+                                target / max,
+                                Interpolator.EASE_BOTH
+                        )
+                )
+        );
+
         scrollAnimation.play();
     }
 
     private void handleHorizontalScroll(ScrollEvent e) {
+
         double max = maxScroll();
+
         if (max <= 0) {
             return;
         }
+
         double delta = e.getDeltaX();
+
         if (e.isShiftDown()) {
-            delta = e.getDeltaY(); 
+            delta = e.getDeltaY();
         }
-        if (Math.abs(delta) > Math.abs(e.getDeltaY()) || e.isShiftDown()) {
+
+        if (Math.abs(delta) > Math.abs(e.getDeltaY())
+                || e.isShiftDown()) {
+
             double value = scroller.getHvalue() - delta / max;
-            scroller.setHvalue(Math.max(0, Math.min(1, value)));
+
+            scroller.setHvalue(
+                    Math.max(0, Math.min(1, value))
+            );
+
             e.consume();
         }
     }
 
     private double maxScroll() {
-        return track.getWidth() - scroller.getViewportBounds().getWidth();
+
+        return track.getWidth()
+                - scroller.getViewportBounds().getWidth();
     }
 }
